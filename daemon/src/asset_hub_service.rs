@@ -1,11 +1,10 @@
-use crate::{
-    artifact_cache::ArtifactCache,
-    asset_hub::{AssetBatchEvent, AssetHub},
-    capnp_db::{CapnpCursor as _, Environment, RoTransaction},
-    error::Error,
-    file_asset_source::FileAssetSource,
-    file_tracker::FileTracker,
+use std::{
+    collections::{HashMap, HashSet},
+    path,
+    rc::Rc,
+    sync::Arc,
 };
+
 use atelier_core::utils;
 use atelier_importer::SerializedAsset;
 use atelier_schema::{
@@ -19,14 +18,15 @@ use atelier_schema::{
     service::asset_hub,
 };
 use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
+use futures_util::{AsyncReadExt, TryFutureExt};
 
-use futures_util::AsyncReadExt;
-use futures_util::TryFutureExt;
-use std::{
-    collections::{HashMap, HashSet},
-    path,
-    rc::Rc,
-    sync::Arc,
+use crate::{
+    artifact_cache::ArtifactCache,
+    asset_hub::{AssetBatchEvent, AssetHub},
+    capnp_db::{CapnpCursor as _, Environment, RoTransaction},
+    error::Error,
+    file_asset_source::FileAssetSource,
+    file_tracker::FileTracker,
 };
 
 // crate::Error has `impl From<crate::Error> for capnp::Error`

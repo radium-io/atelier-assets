@@ -1,12 +1,11 @@
-use crate::artifact_cache::ArtifactCache;
-use crate::asset_hub::{self, AssetHub};
-use crate::capnp_db::{CapnpCursor, DBTransaction, Environment, MessageReader, RwTransaction};
-use crate::daemon::ImporterMap;
-use crate::error::{Error, Result};
-use crate::file_tracker::{FileState, FileTracker, FileTrackerEvent};
-use crate::source_pair_import::{
-    self, hash_file, HashedSourcePair, SourceMetadata, SourcePair, SourcePairImport,
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+    str,
+    sync::Arc,
+    time::Instant,
 };
+
 use atelier_core::{utils, ArtifactId, AssetRef, AssetUuid, CompressionType};
 use atelier_importer::{
     ArtifactMetadata, AssetMetadata, BoxedImporter, ImporterContext, SerializedAsset,
@@ -18,14 +17,23 @@ use atelier_schema::{
 };
 use bincode::config::Options;
 use futures_channel::mpsc::unbounded;
-use futures_util::lock::Mutex;
-use futures_util::stream::StreamExt;
+use futures_util::{lock::Mutex, stream::StreamExt};
 use log::{debug, error, info};
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet};
-use std::{path::PathBuf, str, sync::Arc, time::Instant};
 use tokio::runtime::Runtime;
+
+use crate::{
+    artifact_cache::ArtifactCache,
+    asset_hub::{self, AssetHub},
+    capnp_db::{CapnpCursor, DBTransaction, Environment, MessageReader, RwTransaction},
+    daemon::ImporterMap,
+    error::{Error, Result},
+    file_tracker::{FileState, FileTracker, FileTrackerEvent},
+    source_pair_import::{
+        self, hash_file, HashedSourcePair, SourceMetadata, SourcePair, SourcePairImport,
+    },
+};
 
 pub(crate) struct FileAssetSource {
     hub: Arc<AssetHub>,

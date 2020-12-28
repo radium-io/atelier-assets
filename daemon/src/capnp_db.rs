@@ -1,9 +1,10 @@
 #![allow(dead_code)]
-use crate::error::{Error, Result};
+use std::{path::Path, result::Result as StdResult};
+
 use async_lock::{Semaphore, SemaphoreGuard};
 use lmdb::{self, Cursor, Transaction};
-use std::path::Path;
-use std::result::Result as StdResult;
+
+use crate::error::{Error, Result};
 
 pub type MessageReader<'a, T> = capnp::message::TypedReader<capnp::serialize::SliceSegments<'a>, T>;
 

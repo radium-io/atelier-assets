@@ -1,7 +1,12 @@
-use crate::daemon::ImporterMap;
-use crate::error::{Error, Result};
-use crate::file_tracker::FileState;
-use crate::watcher::file_metadata;
+use std::{
+    collections::HashSet,
+    fs,
+    hash::{Hash, Hasher},
+    io::{BufRead, Read, Write},
+    path::PathBuf,
+    time::Instant,
+};
+
 use atelier_core::{utils, ArtifactId, AssetRef, AssetTypeId, AssetUuid, CompressionType};
 use atelier_importer::{
     ArtifactMetadata, AssetMetadata, BoxedImporter, ExportAsset, ImportedAsset, ImporterContext,
@@ -11,16 +16,14 @@ use atelier_importer::{
 use atelier_schema::data;
 use futures_core::future::{BoxFuture, Future};
 use log::{debug, error};
-use std::io::Read;
-use std::{
-    collections::HashSet,
-    fs,
-    hash::{Hash, Hasher},
-    io::{BufRead, Write},
-    path::PathBuf,
-    time::Instant,
-};
 use tokio::{fs::File, prelude::*};
+
+use crate::{
+    daemon::ImporterMap,
+    error::{Error, Result},
+    file_tracker::FileState,
+    watcher::file_metadata,
+};
 
 pub type SourceMetadata = ImporterSourceMetadata<Box<dyn SerdeObj>, Box<dyn SerdeObj>>;
 

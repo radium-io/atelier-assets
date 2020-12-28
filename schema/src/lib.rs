@@ -1,8 +1,8 @@
 mod schemas;
-use atelier_core::{utils::make_array, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef};
-pub use schemas::data_capnp;
-pub use schemas::service_capnp;
 use std::path::PathBuf;
+
+use atelier_core::{utils::make_array, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef};
+pub use schemas::{data_capnp, service_capnp};
 impl ::std::fmt::Debug for data_capnp::FileState {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {

@@ -1,15 +1,14 @@
+use std::fmt;
+#[cfg(feature = "serde-1")]
+use std::str::FromStr;
+
+#[cfg(feature = "asset_uuid_macro")]
+pub use asset_uuid::asset_uuid;
 #[cfg(feature = "serde-1")]
 use serde::{
     de::{self, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
 };
-#[cfg(feature = "serde-1")]
-use std::str::FromStr;
-
-use std::fmt;
-
-#[cfg(feature = "asset_uuid_macro")]
-pub use asset_uuid::asset_uuid;
 pub mod importer_context;
 pub mod utils;
 

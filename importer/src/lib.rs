@@ -5,33 +5,32 @@ mod serialized_asset;
 
 #[cfg(feature = "serde_importers")]
 mod ron_importer;
+use std::io::{Read, Write};
+
+pub use atelier_core::{
+    importer_context::{ImporterContext, ImporterContextHandle},
+    ArtifactMetadata, AssetMetadata,
+};
+use atelier_core::{AssetRef, AssetUuid};
+use futures_core::future::BoxFuture;
+use futures_io::{AsyncRead, AsyncWrite};
+pub use serde;
+use serde::Serialize;
+#[cfg(feature = "serde_importers")]
+pub use serde_importable_derive::*;
+
+pub use self::error::{Error, Result};
 #[cfg(feature = "serde_importers")]
 pub use crate::ron_importer::{RonImporter, RonImporterOptions, RonImporterState};
 #[doc(hidden)]
 #[cfg(feature = "serde_importers")]
 pub use crate::serde_obj::typetag;
 #[cfg(feature = "serde_importers")]
-pub use serde_importable_derive::*;
-
-pub use serde;
-
-use atelier_core::{AssetRef, AssetUuid};
-use futures_core::future::BoxFuture;
-use futures_io::{AsyncRead, AsyncWrite};
-use serde::Serialize;
-use std::io::{Read, Write};
-
-pub use self::error::{Error, Result};
-#[cfg(feature = "serde_importers")]
 pub use crate::serde_obj::SerdeImportable;
 pub use crate::{
     boxed_importer::{BoxedImporter, SourceMetadata, SOURCEMETADATA_VERSION},
     serde_obj::{IntoSerdeObj, SerdeObj},
     serialized_asset::SerializedAsset,
-};
-pub use atelier_core::{
-    importer_context::{ImporterContext, ImporterContextHandle},
-    ArtifactMetadata, AssetMetadata,
 };
 
 /// Importers parse file formats and produce assets.
@@ -219,6 +218,6 @@ macro_rules! if_serde_importers {
 }
 
 /// Convenience function for reporting an error in an `Importer`
-pub fn import_error<T: Into<String>>(text: String) -> Box<dyn std::error::Error + Send + 'static>{
+pub fn import_error<T: Into<String>>(text: String) -> Box<dyn std::error::Error + Send + 'static> {
     Box::new(Error::Custom(text))
 }

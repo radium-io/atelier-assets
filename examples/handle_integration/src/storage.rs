@@ -1,10 +1,11 @@
+use std::{any::Any, cell::RefCell, collections::HashMap, error::Error, sync::Arc};
+
 use atelier_assets::loader::{
     crossbeam_channel::Sender,
     handle::{AssetHandle, RefOp, TypedAssetStorage},
     storage::{AssetLoadOp, AssetStorage, IndirectionTable, LoadHandle, LoaderInfoProvider},
     AssetTypeId,
 };
-use std::{any::Any, cell::RefCell, collections::HashMap, error::Error, sync::Arc};
 use type_uuid::TypeUuid;
 
 pub struct GenericAssetStorage {

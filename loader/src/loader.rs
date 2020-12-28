@@ -1,20 +1,3 @@
-use crate::{
-    handle::{RefOp, SerdeContext},
-    io::DataRequest,
-    io::LoaderIO,
-    io::MetadataRequest,
-    io::ResolveRequest,
-    storage::{
-        AssetLoadOp, AssetStorage, AtomicHandleAllocator, HandleAllocator, HandleOp,
-        IndirectIdentifier, IndirectionResolver, IndirectionTable, LoadHandle, LoadInfo,
-        LoadStatus, LoaderInfoProvider,
-    },
-    Result,
-};
-use atelier_core::{ArtifactMetadata, AssetMetadata, AssetRef, AssetTypeId, AssetUuid};
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use dashmap::DashMap;
-use log::error;
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
@@ -22,6 +5,22 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
+};
+
+use atelier_core::{ArtifactMetadata, AssetMetadata, AssetRef, AssetTypeId, AssetUuid};
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use dashmap::DashMap;
+use log::error;
+
+use crate::{
+    handle::{RefOp, SerdeContext},
+    io::{DataRequest, LoaderIO, MetadataRequest, ResolveRequest},
+    storage::{
+        AssetLoadOp, AssetStorage, AtomicHandleAllocator, HandleAllocator, HandleOp,
+        IndirectIdentifier, IndirectionResolver, IndirectionTable, LoadHandle, LoadInfo,
+        LoadStatus, LoaderInfoProvider,
+    },
+    Result,
 };
 
 /// Describes the state of an asset load operation
@@ -1094,15 +1093,6 @@ fn commit_asset(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{rpc_io::RpcIO, storage::DefaultIndirectionResolver};
-    use atelier_core::AssetUuid;
-    use atelier_daemon::{init_logging, AssetDaemon};
-    use atelier_importer::{AsyncImporter, ImportedAsset, ImporterValue, Result as ImportResult};
-    use futures_core::future::BoxFuture;
-    use futures_io::AsyncRead;
-    use futures_util::io::AsyncReadExt;
-    use serde::{Deserialize, Serialize};
     use std::{
         iter::FromIterator,
         path::PathBuf,
@@ -1111,8 +1101,19 @@ mod tests {
         sync::RwLock,
         thread::{self, JoinHandle},
     };
+
+    use atelier_core::AssetUuid;
+    use atelier_daemon::{init_logging, AssetDaemon};
+    use atelier_importer::{AsyncImporter, ImportedAsset, ImporterValue, Result as ImportResult};
+    use futures_core::future::BoxFuture;
+    use futures_io::AsyncRead;
+    use futures_util::io::AsyncReadExt;
+    use serde::{Deserialize, Serialize};
     use type_uuid::TypeUuid;
     use uuid::Uuid;
+
+    use super::*;
+    use crate::{rpc_io::RpcIO, storage::DefaultIndirectionResolver};
 
     #[derive(Debug)]
     struct LoadState {

@@ -1,10 +1,15 @@
+use std::{
+    marker::PhantomData,
+    pin::Pin,
+    task::{Context, Poll},
+};
+
 use futures_core::future::{BoxFuture, Future};
-use futures_util::future::FutureExt;
-use futures_util::stream::{FuturesUnordered, Stream};
+use futures_util::{
+    future::FutureExt,
+    stream::{FuturesUnordered, Stream},
+};
 use pin_project::{pin_project, pinned_drop};
-use std::marker::PhantomData;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use tokio::task::JoinHandle;
 
 /// A scope to allow controlled spawning of non 'static

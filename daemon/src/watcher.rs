@@ -1,12 +1,15 @@
-use crate::error::{Error, Result};
+use std::{
+    collections::HashMap,
+    fs, io,
+    path::PathBuf,
+    sync::mpsc::{channel, Receiver, Sender},
+    time::{Duration, UNIX_EPOCH},
+};
+
 use futures_channel::mpsc::UnboundedSender;
 use notify::{watcher, DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
-use std::collections::HashMap;
-use std::fs;
-use std::io;
-use std::path::PathBuf;
-use std::sync::mpsc::{channel, Receiver, Sender};
-use std::time::{Duration, UNIX_EPOCH};
+
+use crate::error::{Error, Result};
 
 /// The purpose of DirWatcher is to provide enough information to
 /// determine which files may be candidates for going through the asset import process.

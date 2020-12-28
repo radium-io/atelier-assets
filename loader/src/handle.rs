@@ -1,14 +1,3 @@
-use crate::{
-    storage::{LoadStatus, LoaderInfoProvider},
-    AssetRef, AssetUuid, LoadHandle, Loader,
-};
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use futures_core::future::{BoxFuture, Future};
-use serde::{
-    de::{self, Deserialize, Visitor},
-    export::Formatter,
-    ser::{self, Serialize, Serializer},
-};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
@@ -18,6 +7,19 @@ use std::{
         atomic::{AtomicU64, Ordering},
         Arc, Mutex, RwLock,
     },
+};
+
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use futures_core::future::{BoxFuture, Future};
+use serde::{
+    de::{self, Deserialize, Visitor},
+    export::Formatter,
+    ser::{self, Serialize, Serializer},
+};
+
+use crate::{
+    storage::{LoadStatus, LoaderInfoProvider},
+    AssetRef, AssetUuid, LoadHandle, Loader,
 };
 
 /// Operations on an asset reference.

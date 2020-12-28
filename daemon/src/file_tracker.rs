@@ -1,18 +1,3 @@
-use crate::capnp_db::{
-    CapnpCursor, DBTransaction, Environment, MessageReader, RoTransaction, RwTransaction,
-};
-use crate::error::{Error, Result};
-use crate::watcher::{self, FileEvent, FileMetadata};
-use atelier_core::utils;
-use atelier_schema::data::{self, dirty_file_info, rename_file_event, source_file_info, FileType};
-use event_listener::Event;
-use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
-use futures_util::future::{Fuse, FusedFuture, FutureExt};
-use futures_util::lock::Mutex;
-use futures_util::select;
-use futures_util::stream::StreamExt;
-use lmdb::Cursor;
-use log::{debug, info};
 use std::{
     cell::Cell,
     cmp::PartialEq,
@@ -22,11 +7,34 @@ use std::{
     ops::IndexMut,
     path::PathBuf,
     str,
-    sync::atomic::{AtomicBool, Ordering},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     thread,
 };
+
+use atelier_core::utils;
+use atelier_schema::data::{self, dirty_file_info, rename_file_event, source_file_info, FileType};
+use event_listener::Event;
+use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures_util::{
+    future::{Fuse, FusedFuture, FutureExt},
+    lock::Mutex,
+    select,
+    stream::StreamExt,
+};
+use lmdb::Cursor;
+use log::{debug, info};
 use tokio::time::{self, Duration};
+
+use crate::{
+    capnp_db::{
+        CapnpCursor, DBTransaction, Environment, MessageReader, RoTransaction, RwTransaction,
+    },
+    error::{Error, Result},
+    watcher::{self, FileEvent, FileMetadata},
+};
 
 #[derive(Clone)]
 struct FileTrackerTables {
@@ -701,17 +709,21 @@ impl FileTracker {
 
 #[cfg(test)]
 pub mod tests {
-    use super::*;
-    use crate::capnp_db::Environment;
-    use crate::file_tracker::{FileTracker, FileTrackerEvent};
-    use std::future::Future;
     use std::{
         fs,
+        future::Future,
         path::{Path, PathBuf},
         sync::Arc,
         time::Duration,
     };
+
     use tempfile;
+
+    use super::*;
+    use crate::{
+        capnp_db::Environment,
+        file_tracker::{FileTracker, FileTrackerEvent},
+    };
 
     pub fn with_tracker<F, T>(f: F)
     where

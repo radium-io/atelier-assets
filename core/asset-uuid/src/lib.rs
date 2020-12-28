@@ -1,10 +1,8 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-
 use quote::quote;
 use syn::{parse, LitStr};
-
 use uuid::Uuid;
 
 #[proc_macro]
