@@ -3,7 +3,6 @@ use std::{
     cmp::PartialEq,
     collections::{HashMap, HashSet},
     fs,
-    iter::FromIterator,
     ops::IndexMut,
     path::PathBuf,
     str,
@@ -331,7 +330,7 @@ mod events {
                         db_file_set.insert(PathBuf::from(key));
                     }
                 }
-                let scan_ctx_set = HashSet::from_iter(scan_ctx.files.keys().cloned());
+                let scan_ctx_set = scan_ctx.files.keys().cloned().collect();
                 let to_remove = db_file_set.difference(&scan_ctx_set);
                 for p in to_remove {
                     let p_str = p.to_string_lossy();
@@ -353,11 +352,10 @@ mod events {
                         let mut cursor = txn
                             .open_ro_cursor(tables.source_files)
                             .expect("Failed to open RO cursor for source_files table");
-                        let dirs_as_strings = Vec::from_iter(
-                            watched_dirs
-                                .into_iter()
-                                .map(|f| f.to_string_lossy().into_owned()),
-                        );
+                        let dirs_as_strings: Vec<_> = watched_dirs
+                            .into_iter()
+                            .map(|f| f.to_string_lossy().into_owned())
+                            .collect();
                         for iter_result in cursor.iter_start() {
                             let (key_bytes, _) =
                                 iter_result.expect("Error while iterating source file metadata");
@@ -717,8 +715,6 @@ pub mod tests {
         time::Duration,
     };
 
-    use tempfile;
-
     use super::*;
     use crate::{
         capnp_db::Environment,
@@ -739,13 +735,12 @@ pub mod tests {
             let _ = fs::create_dir(db_dir.path());
             let asset_paths = vec![asset_dir.path().to_str().unwrap()];
             let db = Arc::new(
-                Environment::with_map_size(db_dir.path(), 1 << 21).expect(
-                    format!(
+                Environment::with_map_size(db_dir.path(), 1 << 21).unwrap_or_else(|_| {
+                    panic!(
                         "failed to create db environment {}",
                         db_dir.path().to_string_lossy()
                     )
-                    .as_str(),
-                ),
+                }),
             );
             let tracker = Arc::new(FileTracker::new(db, asset_paths));
             let (tx, mut rx) = unbounded();
