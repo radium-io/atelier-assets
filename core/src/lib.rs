@@ -1,3 +1,4 @@
+#![warn(clippy::all, rust_2018_idioms, rust_2018_compatibility)]
 use std::fmt;
 #[cfg(feature = "serde-1")]
 use std::str::FromStr;
@@ -82,7 +83,7 @@ impl<'de> Deserialize<'de> for AssetUuid {
         if deserializer.is_human_readable() {
             deserializer.deserialize_string(AssetUuidVisitor)
         } else {
-            Ok(AssetUuid(<[u8; 16]>::deserialize(deserializer)?))
+            Ok(Self(<[u8; 16]>::deserialize(deserializer)?))
         }
     }
 }
@@ -147,7 +148,7 @@ impl<'de> Deserialize<'de> for AssetTypeId {
         if deserializer.is_human_readable() {
             deserializer.deserialize_string(AssetTypeIdVisitor)
         } else {
-            Ok(AssetTypeId(<[u8; 16]>::deserialize(deserializer)?))
+            Ok(Self(<[u8; 16]>::deserialize(deserializer)?))
         }
     }
 }
@@ -161,7 +162,7 @@ pub enum AssetRef {
 }
 impl AssetRef {
     pub fn expect_uuid(&self) -> &AssetUuid {
-        if let AssetRef::Uuid(uuid) = self {
+        if let Self::Uuid(uuid) = self {
             uuid
         } else {
             panic!("Expected AssetRef::Uuid, got {:?}", self)
@@ -169,11 +170,11 @@ impl AssetRef {
     }
 
     pub fn is_path(&self) -> bool {
-        matches!(self, AssetRef::Path(_))
+        matches!(self, Self::Path(_))
     }
 
     pub fn is_uuid(&self) -> bool {
-        matches!(self, AssetRef::Uuid(_))
+        matches!(self, Self::Uuid(_))
     }
 }
 

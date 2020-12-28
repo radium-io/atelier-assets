@@ -1,4 +1,4 @@
-#![warn(rust_2018_idioms, rust_2018_compatibility)]
+#![warn(clippy::all, rust_2018_idioms, rust_2018_compatibility)]
 
 /// *feature:* `handle`. Handles provide automatic reference counting of assets, similar to [Rc](`std::rc::Rc`).
 #[cfg(feature = "handle")]

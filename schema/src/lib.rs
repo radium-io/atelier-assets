@@ -1,4 +1,6 @@
+#![warn(clippy::all, rust_2018_compatibility)]
 mod schemas;
+
 use std::path::PathBuf;
 
 use atelier_core::{utils::make_array, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef};
