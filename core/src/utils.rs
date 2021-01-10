@@ -1,6 +1,4 @@
-use uuid::Uuid;
-
-use crate::{AssetTypeId, AssetUuid};
+use crate::AssetUuid;
 use std::{
     ffi::OsStr,
     hash::{Hash, Hasher},
@@ -15,10 +13,6 @@ where
     let mut a = Default::default();
     <A as AsMut<[T]>>::as_mut(&mut a).copy_from_slice(slice);
     a
-}
-
-pub fn type_from_slice(slice: &[u8]) -> Option<AssetTypeId> {
-    Uuid::from_slice(slice).map(AssetTypeId).ok()
 }
 
 pub fn to_meta_path(p: &Path) -> PathBuf {

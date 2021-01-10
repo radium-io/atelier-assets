@@ -124,6 +124,7 @@ pub enum AssetRef {
     Uuid(AssetUuid),
     Path(std::path::PathBuf),
 }
+
 impl AssetRef {
     pub fn expect_uuid(&self) -> &AssetUuid {
         if let AssetRef::Uuid(uuid) = self {
