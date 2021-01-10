@@ -15,6 +15,7 @@ use std::{
     collections::HashMap,
     error::Error,
 };
+use uuid::Uuid;
 
 #[allow(dead_code)]
 struct AssetState<A> {
@@ -165,7 +166,7 @@ pub fn run() {
     let mut loader = Loader::new(Box::new(RpcIO::default()));
     // Create storage for Image type
     game.storage.insert(
-        AssetTypeId(Image::UUID),
+        AssetTypeId(Uuid::from_bytes(Image::UUID)),
         Box::new(Storage::<Image>::new(loader.indirection_table())),
     );
 

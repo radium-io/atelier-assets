@@ -280,7 +280,7 @@ impl FileAssetSource {
 
             {
                 value.set_importer_version(result_metadata.importer_version);
-                value.set_importer_type(&result_metadata.importer_type.0);
+                value.set_importer_type(result_metadata.importer_type.0.as_bytes());
                 value.set_importer_state_type(&metadata.importer_state.uuid());
                 let mut state_buf = Vec::new();
                 bincode::serialize_into(&mut state_buf, &metadata.importer_state)?;
@@ -1537,7 +1537,9 @@ where
                 saved_metadata.get_import_hash()?,
             )));
             let importer_version = saved_metadata.get_importer_version();
-            let importer_type = AssetTypeId::from(saved_metadata.get_importer_type()?);
+            let importer_type =
+                Uuid::from_slice(saved_metadata.get_importer_type()?).map(AssetTypeId)?;
+
             let assets = saved_metadata
                 .get_assets()?
                 .iter()

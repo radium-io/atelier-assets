@@ -5,10 +5,7 @@
 // #![warn(missing_docs)]
 
 #[cfg(feature = "serde-1")]
-use serde::{
-    de::{self, Visitor},
-    Deserialize, Deserializer, Serialize, Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub use uuid;
 use uuid::Uuid;
 
@@ -31,7 +28,7 @@ pub struct AssetUuid(pub Uuid);
 
 impl<S: AsRef<str>> From<S> for AssetUuid {
     fn from(s: S) -> Self {
-        AssetUuid(Uuid::parse_str(s.as_ref()).expect("Macro input is not a UUID string"))
+        AssetUuid(Uuid::parse_str(s.as_ref()).expect("input is not a UUID string"))
     }
 }
 
@@ -64,9 +61,10 @@ impl<'de> Deserialize<'de> for AssetUuid {
         if deserializer.is_human_readable() {
             Deserialize::deserialize(deserializer).map(AssetUuid)
         } else {
-            Ok(AssetUuid(Uuid::from_bytes(<[u8; 16]>::deserialize(deserializer)?)))
+            Ok(AssetUuid(Uuid::from_bytes(<[u8; 16]>::deserialize(
+                deserializer,
+            )?)))
         }
-
     }
 }
 
@@ -75,21 +73,23 @@ impl<'de> Deserialize<'de> for AssetUuid {
 /// If using a human-readable format, serializes to a hyphenated UUID format and deserializes from
 /// any format supported by the `uuid` crate. Otherwise, serializes to and from a `[u8; 16]`.
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default, Hash)]
-pub struct AssetTypeId(pub [u8; 16]);
+pub struct AssetTypeId(pub Uuid);
 
-impl From<&[u8]> for AssetTypeId {
-    fn from(bytes: &[u8]) -> Self {
-        AssetTypeId(
-            *Uuid::from_slice(bytes)
-                .expect("16 bytes for UUID")
-                .as_bytes(),
-        )
+impl<S: AsRef<str>> From<S> for AssetTypeId {
+    fn from(s: S) -> Self {
+        AssetTypeId(Uuid::parse_str(s.as_ref()).expect("input is not a UUID string"))
+    }
+}
+
+impl AsRef<[u8]> for AssetTypeId {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_bytes()
     }
 }
 
 impl fmt::Display for AssetTypeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        uuid::Uuid::from_bytes(self.0).fmt(f)
+        self.0.fmt(f)
     }
 }
 
@@ -99,26 +99,8 @@ impl Serialize for AssetTypeId {
         if serializer.is_human_readable() {
             serializer.serialize_str(&self.to_string())
         } else {
-            self.0.serialize(serializer)
+            self.0.as_bytes().serialize(serializer)
         }
-    }
-}
-
-#[cfg(feature = "serde-1")]
-struct AssetTypeIdVisitor;
-
-#[cfg(feature = "serde-1")]
-impl<'a> Visitor<'a> for AssetTypeIdVisitor {
-    type Value = AssetTypeId;
-
-    fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "a UUID-formatted string")
-    }
-
-    fn visit_str<E: de::Error>(self, s: &str) -> Result<Self::Value, E> {
-        uuid::Uuid::parse_str(s)
-            .map(|id| AssetTypeId(*id.as_bytes()))
-            .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(s), &self))
     }
 }
 
@@ -126,9 +108,11 @@ impl<'a> Visitor<'a> for AssetTypeIdVisitor {
 impl<'de> Deserialize<'de> for AssetTypeId {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         if deserializer.is_human_readable() {
-            deserializer.deserialize_string(AssetTypeIdVisitor)
+            Deserialize::deserialize(deserializer).map(AssetTypeId)
         } else {
-            Ok(AssetTypeId(<[u8; 16]>::deserialize(deserializer)?))
+            Ok(AssetTypeId(Uuid::from_bytes(<[u8; 16]>::deserialize(
+                deserializer,
+            )?)))
         }
     }
 }

@@ -1,6 +1,7 @@
 use crate::Result;
 use atelier_core::{ArtifactId, AssetRef, AssetTypeId, AssetUuid, CompressionType};
 use atelier_importer::{ArtifactMetadata, SerdeObj, SerializedAsset};
+use uuid::Uuid;
 
 pub fn create(
     hash: u64,
@@ -31,7 +32,7 @@ pub fn create(
             compression,
             uncompressed_size: Some(size as u64),
             compressed_size: Some(asset_buf.len() as u64),
-            type_id: AssetTypeId(value.uuid()),
+            type_id: AssetTypeId(Uuid::from_bytes(value.uuid())),
         },
         data: asset_buf,
     })

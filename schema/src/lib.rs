@@ -1,6 +1,7 @@
 mod schemas;
 use atelier_core::{
-    utils::make_array, uuid::Uuid, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef, AssetUuid,
+    utils::make_array, uuid::Uuid, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef,
+    AssetTypeId, AssetUuid,
 };
 pub use schemas::{data_capnp, pack_capnp, service_capnp};
 use std::path::PathBuf;
@@ -116,10 +117,13 @@ pub fn parse_artifact_metadata(artifact: &data::artifact_metadata::Reader<'_>) -
             .iter()
             .map(|dep| parse_db_asset_ref(&dep))
             .collect(),
-        type_id: artifact
-            .get_type_id()
-            .expect("capnp: failed to read asset type")
-            .into(),
+        type_id: Uuid::from_slice(
+            artifact
+                .get_type_id()
+                .expect("capnp: failed to read asset type"),
+        )
+        .map(AssetTypeId)
+        .expect("asset_type_id"),
         compression: artifact
             .get_compression()
             .expect("capnp: failed to read compression type")
@@ -222,7 +226,7 @@ pub fn build_artifact_metadata(
         .set_uncompressed_size(artifact_metadata.uncompressed_size.unwrap_or(0));
     artifact
         .reborrow()
-        .set_type_id(&artifact_metadata.type_id.0);
+        .set_type_id(artifact_metadata.type_id.0.as_bytes());
 }
 
 pub fn build_asset_metadata(

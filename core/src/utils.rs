@@ -18,9 +18,7 @@ where
 }
 
 pub fn type_from_slice(slice: &[u8]) -> Option<AssetTypeId> {
-    Uuid::from_slice(slice)
-        .ok()
-        .map(|uuid| AssetTypeId(*uuid.as_bytes()))
+    Uuid::from_slice(slice).map(AssetTypeId).ok()
 }
 
 pub fn to_meta_path(p: &Path) -> PathBuf {

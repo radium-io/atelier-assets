@@ -23,6 +23,7 @@ use std::{
     time::Instant,
 };
 use tokio::{fs::File, prelude::*};
+use uuid::Uuid;
 
 pub type SourceMetadata = ImporterSourceMetadata<Box<dyn SerdeObj>, Box<dyn SerdeObj>>;
 
@@ -220,7 +221,7 @@ impl<'a> SourcePairImport<'a> {
                     meta_file.importer_options.as_ref(),
                     meta_file.importer_state.as_ref(),
                     cached_result.importer_version,
-                    cached_result.importer_type.0,
+                    *cached_result.importer_type.0.as_bytes(),
                     scratch_buf,
                 )?);
             }
@@ -474,7 +475,7 @@ impl<'a> SourcePairImport<'a> {
                         compression: serialized_asset.metadata.compression,
                         compressed_size: serialized_asset.metadata.compressed_size,
                         uncompressed_size: serialized_asset.metadata.uncompressed_size,
-                        type_id: AssetTypeId(asset.asset_data.uuid()),
+                        type_id: AssetTypeId(Uuid::from_bytes(asset.asset_data.uuid())),
                     }),
                     build_pipeline: asset.build_pipeline,
                 },
@@ -493,7 +494,7 @@ impl<'a> SourcePairImport<'a> {
             assets: imported_assets.iter().map(|a| a.metadata.clone()).collect(),
             import_hash: Some(import_hash),
             importer_version: importer.version(),
-            importer_type: AssetTypeId(importer.uuid()),
+            importer_type: AssetTypeId(Uuid::from_bytes(importer.uuid())),
         });
 
         Ok(PairImportResult {

@@ -6,6 +6,7 @@ use atelier_assets::loader::{
     AssetTypeId,
 };
 use std::{any::Any, cell::RefCell, collections::HashMap, error::Error, sync::Arc};
+use uuid::Uuid;
 
 pub struct GenericAssetStorage {
     storage: RefCell<HashMap<AssetTypeId, Box<dyn TypedStorage>>>,
@@ -25,7 +26,7 @@ impl GenericAssetStorage {
     pub fn add_storage<T: TypeUuid + for<'a> serde::Deserialize<'a> + 'static>(&self) {
         let mut storages = self.storage.borrow_mut();
         storages.insert(
-            AssetTypeId(T::UUID),
+            AssetTypeId(Uuid::from_bytes(T::UUID)),
             Box::new(Storage::<T>::new(
                 self.refop_sender.clone(),
                 self.indirection_table.clone(),
@@ -87,7 +88,7 @@ impl<A: TypeUuid + for<'a> serde::Deserialize<'a> + 'static> TypedAssetStorage<A
             std::mem::transmute(
                 self.storage
                     .borrow()
-                    .get(&AssetTypeId(A::UUID))
+                    .get(&AssetTypeId(Uuid::from_bytes(A::UUID)))
                     .expect("unknown asset type")
                     .as_ref()
                     .any()
@@ -100,7 +101,7 @@ impl<A: TypeUuid + for<'a> serde::Deserialize<'a> + 'static> TypedAssetStorage<A
     fn get_version<T: AssetHandle>(&self, handle: &T) -> Option<u32> {
         self.storage
             .borrow()
-            .get(&AssetTypeId(A::UUID))
+            .get(&AssetTypeId(Uuid::from_bytes(A::UUID)))
             .expect("unknown asset type")
             .as_ref()
             .any()
@@ -114,7 +115,7 @@ impl<A: TypeUuid + for<'a> serde::Deserialize<'a> + 'static> TypedAssetStorage<A
             std::mem::transmute(
                 self.storage
                     .borrow()
-                    .get(&AssetTypeId(A::UUID))
+                    .get(&AssetTypeId(Uuid::from_bytes(A::UUID)))
                     .expect("unknown asset type")
                     .as_ref()
                     .any()
