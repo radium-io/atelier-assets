@@ -7,13 +7,12 @@ mod serialized_asset;
 mod ron_importer;
 #[cfg(feature = "serde_importers")]
 pub use crate::ron_importer::{RonImporter, RonImporterOptions, RonImporterState};
-#[doc(hidden)]
 #[cfg(feature = "serde_importers")]
-pub use crate::serde_obj::typetag;
+pub use crate::serde_obj::SerdeImportable;
 #[cfg(feature = "serde_importers")]
 pub use serde_importable_derive::*;
-
-pub use serde;
+#[cfg(feature = "serde_importers")]
+pub use typetag;
 
 use atelier_core::{AssetRef, AssetUuid};
 use futures_core::future::BoxFuture;
@@ -22,8 +21,6 @@ use serde::Serialize;
 use std::io::{Read, Write};
 
 pub use self::error::{Error, Result};
-#[cfg(feature = "serde_importers")]
-pub use crate::serde_obj::SerdeImportable;
 pub use crate::{
     boxed_importer::{BoxedImporter, SourceMetadata, SOURCEMETADATA_VERSION},
     serde_obj::{IntoSerdeObj, SerdeObj},
@@ -222,21 +219,6 @@ pub struct ImporterValue {
 pub struct ExportAsset {
     /// Asset to be exported
     pub asset: SerializedAsset<Vec<u8>>,
-}
-
-#[cfg(feature = "serde_importers")]
-#[macro_export]
-macro_rules! if_serde_importers {
-    ($($tt:tt)*) => {
-        $($tt)*
-    }
-}
-
-#[cfg(not(feature = "serde_importers"))]
-#[macro_export]
-#[doc(hidden)]
-macro_rules! if_serde_importers {
-    ($($tt:tt)*) => {};
 }
 
 /// Convenience function for reporting an error in an `Importer`

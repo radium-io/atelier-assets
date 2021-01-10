@@ -73,9 +73,9 @@ pub fn default_importer_contexts() -> Vec<Box<dyn ImporterContext + 'static>> {
 pub fn default_importers() -> Vec<(&'static str, Box<dyn BoxedImporter>)> {
     let mut importers: Vec<(&'static str, Box<dyn BoxedImporter>)> = vec![];
 
-    atelier_importer::if_serde_importers!(
-        importers.push(("ron", Box::new(atelier_importer::RonImporter::default())))
-    );
+    #[cfg(feature = "serde_importers")]
+    importers.push(("ron", Box::new(atelier_importer::RonImporter::default())));
+
     importers
 }
 impl Default for AssetDaemon {

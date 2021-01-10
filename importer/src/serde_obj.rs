@@ -39,8 +39,4 @@ pub trait SerdeImportable: SerdeObj + IntoSerdeObj {}
 #[doc(hidden)]
 pub use serde_importable_derive::*;
 
-#[doc(hidden)]
-#[cfg(feature = "serde_importers")]
-pub use typetag;
-
 serialize_trait_object!(SerdeObj);
