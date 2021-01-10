@@ -1,7 +1,8 @@
-use crate::Result;
 use atelier_core::{ArtifactId, AssetRef, AssetTypeId, AssetUuid, CompressionType};
 use atelier_importer::{ArtifactMetadata, SerdeObj, SerializedAsset};
 use uuid::Uuid;
+
+use crate::Result;
 
 pub fn create(
     hash: u64,

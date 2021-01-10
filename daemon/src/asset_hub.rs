@@ -1,16 +1,3 @@
-use crate::capnp_db::{CapnpCursor, DBTransaction, Environment, MessageReader, RwTransaction};
-use crate::error::Result;
-use async_channel::Sender;
-use atelier_core::{utils, AssetRef, AssetUuid};
-use atelier_importer::AssetMetadata;
-use atelier_schema::{
-    build_asset_metadata_message,
-    data::{
-        self, asset_change_log_entry,
-        asset_metadata::{self, latest_artifact},
-    },
-    parse_db_asset_ref,
-};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     hash::{Hash, Hasher},
@@ -20,7 +7,23 @@ use std::{
         Arc, Mutex,
     },
 };
+
+use async_channel::Sender;
+use atelier_core::{utils, AssetMetadata, AssetRef, AssetUuid};
+use atelier_schema::{
+    build_asset_metadata_message,
+    data::{
+        self, asset_change_log_entry,
+        asset_metadata::{self, latest_artifact},
+    },
+    parse_db_asset_ref,
+};
 use uuid::Uuid;
+
+use crate::{
+    capnp_db::{CapnpCursor, DBTransaction, Environment, MessageReader, RwTransaction},
+    error::Result,
+};
 
 pub type ListenerID = u64;
 

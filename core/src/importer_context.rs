@@ -1,5 +1,6 @@
-use crate::{AssetRef, AssetUuid};
 use futures_core::future::BoxFuture;
+
+use crate::{AssetRef, AssetUuid};
 
 /// this trait is implemented for
 pub trait ImporterContextHandle: Send + Sync {

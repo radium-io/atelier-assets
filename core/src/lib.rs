@@ -4,12 +4,12 @@
 #![warn(clippy::all, rust_2018_idioms, rust_2018_compatibility)]
 // #![warn(missing_docs)]
 
+use std::fmt;
+
 #[cfg(feature = "serde-1")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub use uuid;
 use uuid::Uuid;
-
-use std::fmt;
 
 /// exports traits for maintaining context of importers
 pub mod importer_context;

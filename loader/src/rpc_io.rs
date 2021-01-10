@@ -1,3 +1,5 @@
+use std::{error::Error, path::PathBuf, sync::Mutex};
+
 use atelier_core::{ArtifactMetadata, AssetMetadata, AssetUuid};
 use atelier_schema::{data::asset_change_event, parse_db_metadata, service::asset_hub};
 use capnp::message::ReaderOptions;
@@ -5,13 +7,13 @@ use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use futures_channel::oneshot;
 use futures_util::AsyncReadExt;
-use std::sync::Mutex;
-use std::{error::Error, path::PathBuf};
 use tokio::runtime::{Builder, Runtime};
 use uuid::Uuid;
 
-use crate::io::{DataRequest, LoaderIO, MetadataRequest, ResolveRequest};
-use crate::loader::LoaderState;
+use crate::{
+    io::{DataRequest, LoaderIO, MetadataRequest, ResolveRequest},
+    loader::LoaderState,
+};
 
 type Promise<T> = capnp::capability::Promise<T, capnp::Error>;
 
@@ -170,10 +172,12 @@ impl RpcRuntime {
                     .send()
                     .promise
                     .await
-                    .map(|_| RpcConnection {
-                        _asset_hub: hub,
-                        snapshot,
-                        snapshot_rx,
+                    .map(|_| {
+                        RpcConnection {
+                            _asset_hub: hub,
+                            snapshot,
+                            snapshot_rx,
+                        }
                     })
                     .map_err(|e| -> Box<dyn Error> { Box::new(e) })?;
                 Ok(rpc_conn)
@@ -341,16 +345,20 @@ impl LoaderIO for RpcIO {
                 // update connection state
                 InternalConnectionState::Connecting(mut pending_connection) => {
                     match pending_connection.try_recv() {
-                        Ok(connection_result) => match connection_result {
-                            Some(value) => match value {
-                                Ok(conn) => InternalConnectionState::Connected(conn),
-                                Err(err) => InternalConnectionState::Error(err),
-                            },
-                            None => {
-                                // still waiting
-                                InternalConnectionState::Connecting(pending_connection)
+                        Ok(connection_result) => {
+                            match connection_result {
+                                Some(value) => {
+                                    match value {
+                                        Ok(conn) => InternalConnectionState::Connected(conn),
+                                        Err(err) => InternalConnectionState::Error(err),
+                                    }
+                                }
+                                None => {
+                                    // still waiting
+                                    InternalConnectionState::Connecting(pending_connection)
+                                }
                             }
-                        },
+                        }
                         // Sender was closed
                         Err(e) => InternalConnectionState::Error(Box::new(e)),
                     }

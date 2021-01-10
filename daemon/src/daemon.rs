@@ -1,16 +1,18 @@
-use crate::{
-    artifact_cache::ArtifactCache, asset_hub, asset_hub_service, capnp_db::Environment,
-    error::Result, file_asset_source, file_tracker::FileTracker,
-};
-use atelier_importer::{BoxedImporter, ImporterContext};
-use atelier_schema::data;
-use futures_util::future::FutureExt;
 use std::{
     collections::HashMap,
     fs,
     net::SocketAddr,
     path::{Path, PathBuf},
     sync::Arc,
+};
+
+use atelier_importer::{BoxedImporter, ImporterContext};
+use atelier_schema::data;
+use futures_util::future::FutureExt;
+
+use crate::{
+    artifact_cache::ArtifactCache, asset_hub, asset_hub_service, capnp_db::Environment,
+    error::Result, file_asset_source, file_tracker::FileTracker,
 };
 
 /// contains mapping from extensions supported for import to the BoxedImporter implementation

@@ -1,18 +1,3 @@
-use crate::capnp_db::{
-    CapnpCursor, DBTransaction, Environment, MessageReader, RoTransaction, RwTransaction,
-};
-use crate::error::{Error, Result};
-use crate::watcher::{self, FileEvent, FileMetadata};
-use atelier_core::utils::{self, canonicalize_path};
-use atelier_schema::data::{self, dirty_file_info, rename_file_event, source_file_info, FileType};
-use event_listener::Event;
-use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
-use futures_util::future::{Fuse, FusedFuture, FutureExt};
-use futures_util::lock::Mutex;
-use futures_util::select;
-use futures_util::stream::StreamExt;
-use lmdb::Cursor;
-use log::{debug, info};
 use std::{
     cell::Cell,
     cmp::PartialEq,
@@ -21,11 +6,34 @@ use std::{
     ops::IndexMut,
     path::{Path, PathBuf},
     str,
-    sync::atomic::{AtomicBool, Ordering},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     thread,
 };
+
+use atelier_core::utils::{self, canonicalize_path};
+use atelier_schema::data::{self, dirty_file_info, rename_file_event, source_file_info, FileType};
+use event_listener::Event;
+use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures_util::{
+    future::{Fuse, FusedFuture, FutureExt},
+    lock::Mutex,
+    select,
+    stream::StreamExt,
+};
+use lmdb::Cursor;
+use log::{debug, info};
 use tokio::time::{self, Duration};
+
+use crate::{
+    capnp_db::{
+        CapnpCursor, DBTransaction, Environment, MessageReader, RoTransaction, RwTransaction,
+    },
+    error::{Error, Result},
+    watcher::{self, FileEvent, FileMetadata},
+};
 
 #[derive(Clone)]
 struct FileTrackerTables {
@@ -714,15 +722,18 @@ impl FileTracker {
 #[cfg(not(target_os = "macos"))] // FIXME: these tests fail in macos CI
 #[cfg(test)]
 pub mod tests {
-    use super::*;
-    use crate::capnp_db::Environment;
-    use crate::file_tracker::{FileTracker, FileTrackerEvent};
-    use std::future::Future;
     use std::{
         fs,
+        future::Future,
         path::{Path, PathBuf},
         sync::Arc,
         time::Duration,
+    };
+
+    use super::*;
+    use crate::{
+        capnp_db::Environment,
+        file_tracker::{FileTracker, FileTrackerEvent},
     };
 
     pub fn with_tracker<F, T>(f: F)
@@ -858,74 +869,84 @@ pub mod tests {
 
     #[test]
     fn test_create_file() {
-        with_tracker(|t, mut rx, asset_dir| async move {
-            add_test_file(&asset_dir, "test.txt").await;
-            expect_event(&mut rx).await;
-            expect_no_event(&mut rx).await;
-            expect_file_state(&t, &asset_dir, "test.txt").await;
-            expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+        with_tracker(|t, mut rx, asset_dir| {
+            async move {
+                add_test_file(&asset_dir, "test.txt").await;
+                expect_event(&mut rx).await;
+                expect_no_event(&mut rx).await;
+                expect_file_state(&t, &asset_dir, "test.txt").await;
+                expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+            }
         });
     }
 
     #[test]
     fn test_modify_file() {
-        with_tracker(|t, mut rx, asset_dir| async move {
-            add_test_file(&asset_dir, "test.txt").await;
-            expect_event(&mut rx).await;
-            expect_file_state(&t, &asset_dir, "test.txt").await;
-            expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
-            clear_dirty_file_state(&t).await;
-            truncate_test_file(&asset_dir, "test.txt").await;
-            expect_event(&mut rx).await;
-            expect_no_event(&mut rx).await;
-            expect_file_state(&t, &asset_dir, "test.txt").await;
-            expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+        with_tracker(|t, mut rx, asset_dir| {
+            async move {
+                add_test_file(&asset_dir, "test.txt").await;
+                expect_event(&mut rx).await;
+                expect_file_state(&t, &asset_dir, "test.txt").await;
+                expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+                clear_dirty_file_state(&t).await;
+                truncate_test_file(&asset_dir, "test.txt").await;
+                expect_event(&mut rx).await;
+                expect_no_event(&mut rx).await;
+                expect_file_state(&t, &asset_dir, "test.txt").await;
+                expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+            }
         })
     }
 
     #[test]
     fn test_delete_file() {
-        with_tracker(|t, mut rx, asset_dir| async move {
-            add_test_file(&asset_dir, "test.txt").await;
-            expect_event(&mut rx).await;
-            expect_file_state(&t, &asset_dir, "test.txt").await;
-            expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
-            clear_dirty_file_state(&t).await;
-            delete_test_file(&asset_dir, "test.txt").await;
-            expect_event(&mut rx).await;
-            expect_no_event(&mut rx).await;
-            expect_no_file_state(&t, &asset_dir, "test.txt").await;
-            expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+        with_tracker(|t, mut rx, asset_dir| {
+            async move {
+                add_test_file(&asset_dir, "test.txt").await;
+                expect_event(&mut rx).await;
+                expect_file_state(&t, &asset_dir, "test.txt").await;
+                expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+                clear_dirty_file_state(&t).await;
+                delete_test_file(&asset_dir, "test.txt").await;
+                expect_event(&mut rx).await;
+                expect_no_event(&mut rx).await;
+                expect_no_file_state(&t, &asset_dir, "test.txt").await;
+                expect_dirty_file_state(&t, &asset_dir, "test.txt").await;
+            }
         })
     }
 
     #[test]
     fn test_create_dir() {
-        with_tracker(|t, mut rx, asset_dir| async move {
-            add_test_dir(&asset_dir, "testdir").await;
-            expect_event(&mut rx).await;
-            expect_no_event(&mut rx).await;
-            expect_file_state(&t, &asset_dir, "testdir").await;
-            expect_dirty_file_state(&t, &asset_dir, "testdir").await;
-        })
-    }
-
-    #[test]
-    fn test_create_file_in_dir() {
-        with_tracker(|t, mut rx, asset_dir| async move {
-            let dir = add_test_dir(&asset_dir, "testdir").await;
-            {
+        with_tracker(|t, mut rx, asset_dir| {
+            async move {
+                add_test_dir(&asset_dir, "testdir").await;
                 expect_event(&mut rx).await;
                 expect_no_event(&mut rx).await;
                 expect_file_state(&t, &asset_dir, "testdir").await;
                 expect_dirty_file_state(&t, &asset_dir, "testdir").await;
             }
-            {
-                add_test_file(&dir, "test.txt").await;
-                expect_event(&mut rx).await;
-                expect_no_event(&mut rx).await;
-                expect_file_state(&t, &dir, "test.txt").await;
-                expect_dirty_file_state(&t, &dir, "test.txt").await;
+        })
+    }
+
+    #[test]
+    fn test_create_file_in_dir() {
+        with_tracker(|t, mut rx, asset_dir| {
+            async move {
+                let dir = add_test_dir(&asset_dir, "testdir").await;
+                {
+                    expect_event(&mut rx).await;
+                    expect_no_event(&mut rx).await;
+                    expect_file_state(&t, &asset_dir, "testdir").await;
+                    expect_dirty_file_state(&t, &asset_dir, "testdir").await;
+                }
+                {
+                    add_test_file(&dir, "test.txt").await;
+                    expect_event(&mut rx).await;
+                    expect_no_event(&mut rx).await;
+                    expect_file_state(&t, &dir, "test.txt").await;
+                    expect_dirty_file_state(&t, &dir, "test.txt").await;
+                }
             }
         })
     }

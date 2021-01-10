@@ -1,10 +1,11 @@
 mod schemas;
+use std::path::PathBuf;
+
 use atelier_core::{
     utils::make_array, uuid::Uuid, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef,
     AssetTypeId, AssetUuid,
 };
 pub use schemas::{data_capnp, pack_capnp, service_capnp};
-use std::path::PathBuf;
 impl ::std::fmt::Debug for data_capnp::FileState {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
@@ -62,18 +63,22 @@ fn set_assetref_list(
 
 pub fn parse_db_asset_ref(asset_ref: &data::asset_ref::Reader<'_>) -> AssetRef {
     match asset_ref.which().expect("capnp: failed to read asset ref") {
-        data::asset_ref::Path(p) => AssetRef::Path(PathBuf::from(
-            std::str::from_utf8(p.expect("capnp: failed to read asset ref path"))
-                .expect("capnp: failed to parse utf8 string"),
-        )),
-        data::asset_ref::Uuid(uuid) => AssetRef::Uuid(
-            Uuid::from_slice(
-                uuid.and_then(|id| id.get_id())
-                    .expect("capnp: failed to read asset ref uuid"),
+        data::asset_ref::Path(p) => {
+            AssetRef::Path(PathBuf::from(
+                std::str::from_utf8(p.expect("capnp: failed to read asset ref path"))
+                    .expect("capnp: failed to parse utf8 string"),
+            ))
+        }
+        data::asset_ref::Uuid(uuid) => {
+            AssetRef::Uuid(
+                Uuid::from_slice(
+                    uuid.and_then(|id| id.get_id())
+                        .expect("capnp: failed to read asset ref uuid"),
+                )
+                .map(AssetUuid)
+                .expect("parsed asset_ref uuid"),
             )
-            .map(AssetUuid)
-            .expect("parsed asset_ref uuid"),
-        ),
+        }
     }
 }
 

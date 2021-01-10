@@ -1,6 +1,7 @@
+use std::any::Any;
+
 use atelier_core::TypeUuidDynamic;
 use erased_serde::*;
-use std::any::Any;
 
 /// A trait for serializing any struct with a TypeUuid
 pub trait SerdeObj: Any + Serialize + TypeUuidDynamic + Send {
