@@ -1,5 +1,7 @@
 mod schemas;
-use atelier_core::{utils::make_array, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef};
+use atelier_core::{
+    utils::make_array, uuid::Uuid, ArtifactId, ArtifactMetadata, AssetMetadata, AssetRef, AssetUuid,
+};
 pub use schemas::{data_capnp, pack_capnp, service_capnp};
 use std::path::PathBuf;
 impl ::std::fmt::Debug for data_capnp::FileState {
@@ -51,7 +53,7 @@ fn set_assetref_list(
                 );
             }
             AssetRef::Uuid(uuid) => {
-                builder.init_uuid().set_id(&uuid.0);
+                builder.init_uuid().set_id(uuid.0.as_bytes());
             }
         }
     }
@@ -63,21 +65,28 @@ pub fn parse_db_asset_ref(asset_ref: &data::asset_ref::Reader<'_>) -> AssetRef {
             std::str::from_utf8(p.expect("capnp: failed to read asset ref path"))
                 .expect("capnp: failed to parse utf8 string"),
         )),
-        data::asset_ref::Uuid(uuid) => AssetRef::Uuid(make_array(
-            uuid.and_then(|id| id.get_id())
-                .expect("capnp: failed to read asset ref uuid"),
-        )),
+        data::asset_ref::Uuid(uuid) => AssetRef::Uuid(
+            Uuid::from_slice(
+                uuid.and_then(|id| id.get_id())
+                    .expect("capnp: failed to read asset ref uuid"),
+            )
+            .map(AssetUuid)
+            .expect("parsed asset_ref uuid"),
+        ),
     }
 }
 
 pub fn parse_artifact_metadata(artifact: &data::artifact_metadata::Reader<'_>) -> ArtifactMetadata {
-    let asset_id = make_array(
+    let asset_id = Uuid::from_slice(
         artifact
             .get_asset_id()
             .expect("capnp: failed to read asset_id")
             .get_id()
             .expect("capnp: failed to read asset_id"),
-    );
+    )
+    .map(AssetUuid)
+    .expect("asset_id");
+
     let compressed_size = artifact.get_compressed_size();
     let compressed_size = if compressed_size == 0 {
         None
@@ -107,11 +116,10 @@ pub fn parse_artifact_metadata(artifact: &data::artifact_metadata::Reader<'_>) -
             .iter()
             .map(|dep| parse_db_asset_ref(&dep))
             .collect(),
-        type_id: make_array(
-            artifact
-                .get_type_id()
-                .expect("capnp: failed to read asset type"),
-        ),
+        type_id: artifact
+            .get_type_id()
+            .expect("capnp: failed to read asset type")
+            .into(),
         compression: artifact
             .get_compression()
             .expect("capnp: failed to read compression type")
@@ -122,13 +130,16 @@ pub fn parse_artifact_metadata(artifact: &data::artifact_metadata::Reader<'_>) -
 }
 
 pub fn parse_db_metadata(metadata: &data::asset_metadata::Reader<'_>) -> AssetMetadata {
-    let asset_id = make_array(
+    let asset_id = Uuid::from_slice(
         metadata
             .get_id()
             .expect("capnp: failed to read asset_id")
             .get_id()
             .expect("capnp: failed to read asset_id"),
-    );
+    )
+    .map(AssetUuid)
+    .expect("metadata uuid");
+
     let search_tags = metadata
         .get_search_tags()
         .expect("capnp: failed to read search tags")
@@ -166,11 +177,9 @@ pub fn parse_db_metadata(metadata: &data::asset_metadata::Reader<'_>) -> AssetMe
         .expect("capnp: failed to read build pipeline")
         .get_id()
         .expect("capnp: failed to read build pipeline id");
-    let build_pipeline = if !build_pipeline.is_empty() {
-        Some(make_array(build_pipeline))
-    } else {
-        None
-    };
+
+    let build_pipeline = Uuid::from_slice(build_pipeline).map(AssetUuid).ok();
+
     AssetMetadata {
         id: asset_id,
         search_tags,
@@ -186,7 +195,7 @@ pub fn build_artifact_metadata(
     artifact
         .reborrow()
         .init_asset_id()
-        .set_id(&artifact_metadata.asset_id.0);
+        .set_id(artifact_metadata.asset_id.0.as_bytes());
     artifact
         .reborrow()
         .set_hash(&artifact_metadata.id.0.to_le_bytes());
@@ -221,9 +230,11 @@ pub fn build_asset_metadata(
     m: &mut data::asset_metadata::Builder<'_>,
     source: data::AssetSource,
 ) {
-    m.reborrow().init_id().set_id(&metadata.id.0);
+    m.reborrow().init_id().set_id(metadata.id.0.as_bytes());
     if let Some(pipeline) = metadata.build_pipeline {
-        m.reborrow().init_build_pipeline().set_id(&pipeline.0);
+        m.reborrow()
+            .init_build_pipeline()
+            .set_id(pipeline.0.as_bytes());
     }
     let mut search_tags = m
         .reborrow()

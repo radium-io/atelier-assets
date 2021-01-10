@@ -1,12 +1,21 @@
 #![recursion_limit = "1024"] // required for select!
-#![allow(unknown_lints)]
 #![warn(clippy::all, rust_2018_idioms, rust_2018_compatibility)]
-#![allow(clippy::rc_buffer)] // https://github.com/rust-lang/rust-clippy/issues/6170
+// #![warn(missing_docs)]
 
+//! The Daemon which watches for file changes and maintains database state.
+
+/// the artifact cache
 mod artifact_cache;
+
+/// the asset hub
 mod asset_hub;
+
+/// the asset hub service
 mod asset_hub_service;
+
+/// the capnp database
 mod capnp_db;
+
 mod daemon;
 mod error;
 mod file_asset_source;
@@ -54,6 +63,8 @@ pub fn init_logging() -> Result<()> {
         .map(|()| log::set_max_level(DEFAULT_LOGGING_LEVEL))
         .map_err(Error::SetLoggerError)
 }
+
+/// begins loggin with fern, in a nicely formatted way
 #[cfg(feature = "pretty_log")]
 pub fn init_logging() -> Result<()> {
     use chrono::Local;

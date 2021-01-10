@@ -1,6 +1,6 @@
 use crate::io::{DataRequest, LoaderIO, MetadataRequest, ResolveRequest};
 use crate::loader::LoaderState;
-use atelier_core::{utils::make_array, ArtifactMetadata, AssetMetadata, AssetRef, AssetUuid};
+use atelier_core::{ArtifactMetadata, AssetMetadata, AssetRef, AssetUuid};
 use atelier_schema::pack::pack_file;
 
 use capnp::serialize::SliceSegments;
@@ -12,6 +12,7 @@ use std::{
     sync::Arc,
 };
 use thread_local::ThreadLocal;
+use uuid::Uuid;
 
 struct PackfileMessageReader {
     file: ManuallyDrop<File>,
@@ -64,7 +65,10 @@ impl PackfileReader {
         let mut assets_by_path: HashMap<String, Vec<u32>> = HashMap::new();
         for (idx, entry) in reader.get_entries()?.iter().enumerate() {
             let asset_metadata = entry.get_asset_metadata()?;
-            let id = AssetUuid(make_array(asset_metadata.get_id()?.get_id()?));
+            let id = Uuid::from_slice(asset_metadata.get_id()?.get_id()?)
+                .map(AssetUuid)
+                .expect("valid asset id in packfile");
+
             index_by_uuid.insert(id, idx as u32);
             let path = entry.get_path()?;
             let path = std::str::from_utf8(&path)?;

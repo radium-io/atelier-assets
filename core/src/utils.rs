@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use crate::{AssetTypeId, AssetUuid};
 use std::{
     ffi::OsStr,
@@ -16,21 +18,9 @@ where
 }
 
 pub fn type_from_slice(slice: &[u8]) -> Option<AssetTypeId> {
-    uuid_from_slice(slice).map(|uuid| AssetTypeId(uuid.0))
-}
-
-pub fn uuid_from_slice(slice: &[u8]) -> Option<AssetUuid> {
-    const BYTES_LEN: usize = 16;
-
-    let len = slice.len();
-
-    if len != BYTES_LEN {
-        return None;
-    }
-
-    let mut bytes: uuid::Bytes = [0; 16];
-    bytes.copy_from_slice(slice);
-    Some(AssetUuid(bytes))
+    Uuid::from_slice(slice)
+        .ok()
+        .map(|uuid| AssetTypeId(*uuid.as_bytes()))
 }
 
 pub fn to_meta_path(p: &Path) -> PathBuf {

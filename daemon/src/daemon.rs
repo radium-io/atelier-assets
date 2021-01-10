@@ -13,14 +13,17 @@ use std::{
     sync::Arc,
 };
 
+/// contains mapping from extensions supported for import to the BoxedImporter implementation
 #[derive(Default)]
 pub struct ImporterMap(HashMap<String, Box<dyn BoxedImporter>>);
 
 impl ImporterMap {
+    /// adds an extension -> BoxedImporter mapping to the ImporterMap
     pub fn insert(&mut self, ext: &str, importer: Box<dyn BoxedImporter>) {
         self.0.insert(ext.to_lowercase(), importer);
     }
 
+    /// returns the BoxedImporter if it exists for this file extension
     pub fn get_by_path<'a>(&'a self, path: &Path) -> Option<&'a dyn BoxedImporter> {
         let lower_extension = path
             .extension()
@@ -35,6 +38,7 @@ struct AssetDaemonTables {
     /// String -> Blob
     daemon_info: lmdb::Database,
 }
+
 impl AssetDaemonTables {
     fn new(db: &Environment) -> Result<Self> {
         Ok(Self {
@@ -43,11 +47,18 @@ impl AssetDaemonTables {
     }
 }
 
+/// this constant represents the versioning of the asset database
 const DAEMON_VERSION: u32 = 2;
+
+/// this struct holds configuration for the Daemon
 pub struct AssetDaemon {
+    /// location of the database directory
     pub db_dir: PathBuf,
+    /// address to listen on for daemon
     pub address: SocketAddr,
+    /// map of extensions to importer types
     pub importers: ImporterMap,
+    ///
     pub importer_contexts: Vec<Box<dyn ImporterContext>>,
     pub asset_dirs: Vec<PathBuf>,
 }

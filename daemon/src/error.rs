@@ -136,3 +136,8 @@ impl From<str::Utf8Error> for Error {
         Error::StrUtf8Error(err)
     }
 }
+impl From<uuid::Error> for Error {
+    fn from(_: uuid::Error) -> Error {
+        Error::UuidLength
+    }
+}

@@ -1,5 +1,5 @@
 use crate::capnp_db::{CapnpCursor, DBTransaction, Environment, MessageReader, RwTransaction};
-use crate::error::{Error, Result};
+use crate::error::Result;
 use async_channel::Sender;
 use atelier_core::{utils, AssetRef, AssetUuid};
 use atelier_importer::AssetMetadata;
@@ -20,6 +20,7 @@ use std::{
         Arc, Mutex,
     },
 };
+use uuid::Uuid;
 
 pub type ListenerID = u64;
 
@@ -96,7 +97,7 @@ fn add_asset_changelog_entry(
         match change {
             ChangeEvent::ContentUpdate(evt) => {
                 let mut db_evt = value.init_content_update_event();
-                db_evt.reborrow().init_id().set_id(&evt.id.0);
+                db_evt.reborrow().init_id().set_id(evt.id.0.as_bytes());
                 if let Some(ref import_hash) = evt.import_hash {
                     db_evt.reborrow().set_import_hash(import_hash);
                 }
@@ -105,7 +106,7 @@ fn add_asset_changelog_entry(
                 }
             }
             ChangeEvent::Remove(id) => {
-                value.init_remove_event().init_id().set_id(&id.0);
+                value.init_remove_event().init_id().set_id(id.0.as_bytes());
             }
             ChangeEvent::PathRemove(path) => {
                 value
@@ -178,7 +179,7 @@ impl AssetHub {
         let mut value = value_builder.init_root::<data::asset_uuid_list::Builder<'_>>();
         let mut list = value.reborrow().init_list(dependees.len() as u32);
         for (idx, uuid) in dependees.iter().enumerate() {
-            list.reborrow().get(idx as u32).set_id(&uuid.0);
+            list.reborrow().get(idx as u32).set_id(uuid.0.as_bytes());
         }
         txn.put(self.tables.build_dep_reverse, &id, &value_builder)?;
         Ok(())
@@ -226,7 +227,7 @@ impl AssetHub {
             let mut dependees = Vec::new();
             if let Some(existing_list) = self.get_build_deps_reverse(txn, dep.expect_uuid())? {
                 for uuid in existing_list.get()?.get_list()? {
-                    let uuid = utils::uuid_from_slice(uuid.get_id()?).ok_or(Error::UuidLength)?;
+                    let uuid = Uuid::from_slice(uuid.get_id()?).map(AssetUuid)?;
                     dependees.push(uuid);
                 }
             }
@@ -237,7 +238,7 @@ impl AssetHub {
             let mut dependees = Vec::new();
             if let Some(existing_list) = self.get_build_deps_reverse(txn, &dep)? {
                 for uuid in existing_list.get()?.get_list()? {
-                    let uuid = utils::uuid_from_slice(uuid.get_id()?).ok_or(Error::UuidLength)?;
+                    let uuid = Uuid::from_slice(uuid.get_id()?).map(AssetUuid)?;
                     dependees.push(uuid);
                 }
             }
@@ -283,7 +284,7 @@ impl AssetHub {
             let mut dependees = Vec::new();
             if let Some(existing_list) = self.get_build_deps_reverse(txn, &dep)? {
                 for uuid in existing_list.get()?.get_list()? {
-                    let uuid = utils::uuid_from_slice(uuid.get_id()?).ok_or(Error::UuidLength)?;
+                    let uuid = Uuid::from_slice(uuid.get_id()?).map(AssetUuid)?;
                     dependees.push(uuid);
                 }
             }
@@ -346,8 +347,7 @@ impl AssetHub {
             if affected_assets.insert(id) {
                 if let Some(dependees) = self.get_build_deps_reverse(txn, &id)? {
                     for dependee in dependees.get()?.get_list()? {
-                        let uuid =
-                            utils::uuid_from_slice(dependee.get_id()?).ok_or(Error::UuidLength)?;
+                        let uuid = Uuid::from_slice(dependee.get_id()?).map(AssetUuid)?;
                         to_check.push_back(uuid);
                     }
                 }

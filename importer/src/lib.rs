@@ -48,7 +48,7 @@ impl ImportOp {
         self.warnings.push(err.into());
     }
     pub fn new_asset_uuid(&self) -> AssetUuid {
-        AssetUuid(*uuid::Uuid::new_v4().as_bytes())
+        AssetUuid(uuid::Uuid::new_v4())
     }
 }
 

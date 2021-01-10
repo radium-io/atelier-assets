@@ -17,9 +17,9 @@ pub fn make_handle<T>(uuid: AssetUuid) -> Handle<T> {
 
 pub fn make_handle_from_str<T>(uuid_str: &str) -> Result<Handle<T>, atelier_core::uuid::Error> {
     use std::str::FromStr;
-    Ok(make_handle(AssetUuid(
-        *atelier_core::uuid::Uuid::from_str(uuid_str)?.as_bytes(),
-    )))
+    Ok(make_handle(AssetUuid(atelier_core::uuid::Uuid::from_str(
+        uuid_str,
+    )?)))
 }
 
 #[cfg(feature = "type_uuid")]
@@ -158,7 +158,7 @@ mod tests {
         ) -> BoxFuture<'a, ImportResult<ImporterValue>> {
             Box::pin(async move {
                 if state.id.is_none() {
-                    state.id = Some(AssetUuid(*uuid::Uuid::new_v4().as_bytes()));
+                    state.id = Some(AssetUuid(uuid::Uuid::new_v4()));
                 }
                 let mut bytes = Vec::new();
                 source.read_to_end(&mut bytes).await?;
@@ -169,7 +169,7 @@ mod tests {
                 let load_deps = parsed_asset_data
                     .lines()
                     .filter_map(|line| Uuid::from_str(line).ok())
-                    .map(|uuid| AssetRef::Uuid(AssetUuid(*uuid.as_bytes())))
+                    .map(|uuid| AssetRef::Uuid(AssetUuid(uuid)))
                     .collect::<Vec<AssetRef>>();
 
                 Ok(ImporterValue {
@@ -301,11 +301,11 @@ mod tests {
         ]
         .iter()
         .map(|(id, file_name)| {
-            let asset_uuid = *uuid::Uuid::parse_str(id)
-                .unwrap_or_else(|_| panic!("Failed to parse `{}` as `Uuid`.", id))
-                .as_bytes();
+            let asset_uuid = uuid::Uuid::parse_str(id)
+                .map(AssetUuid)
+                .unwrap_or_else(|_| panic!("Failed to parse `{}` as `Uuid`.", id));
 
-            (AssetUuid(asset_uuid), *file_name)
+            (asset_uuid, *file_name)
         })
         .collect::<Vec<(AssetUuid, &'static str)>>()
     }

@@ -19,6 +19,7 @@ use std::{
         Arc, Mutex, RwLock,
     },
 };
+use uuid::Uuid;
 
 /// Operations on an asset reference.
 #[derive(Debug)]
@@ -423,8 +424,8 @@ where
     SerdeContext::with_active(|loader, _| {
         use ser::SerializeSeq;
         let uuid: AssetUuid = loader.get_asset_id(load).unwrap_or_default();
-        let mut seq = serializer.serialize_seq(Some(uuid.0.len()))?;
-        for element in &uuid.0 {
+        let mut seq = serializer.serialize_seq(Some(uuid.0.as_bytes().len()))?;
+        for element in uuid.0.as_bytes() {
             seq.serialize_element(element)?;
         }
         seq.end()
@@ -527,7 +528,7 @@ impl<'de> Visitor<'de> for AssetRefVisitor {
                 "too many elements when deserializing handle",
             ));
         }
-        Ok(AssetRef::Uuid(AssetUuid(uuid)))
+        Ok(AssetRef::Uuid(AssetUuid(Uuid::from_bytes(uuid))))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -538,7 +539,7 @@ impl<'de> Visitor<'de> for AssetRefVisitor {
         match std::path::PathBuf::from_str(v) {
             Ok(path) => {
                 if let Ok(uuid) = uuid::Uuid::parse_str(&path.to_string_lossy()) {
-                    Ok(AssetRef::Uuid(AssetUuid(*uuid.as_bytes())))
+                    Ok(AssetRef::Uuid(AssetUuid(uuid)))
                 } else {
                     Ok(AssetRef::Path(path))
                 }
@@ -554,17 +555,10 @@ impl<'de> Visitor<'de> for AssetRefVisitor {
     where
         E: de::Error,
     {
-        if v.len() != 16 {
-            Err(E::custom(format!(
-                "byte array len == {}, expected {}",
-                v.len(),
-                16
-            )))
-        } else {
-            let mut a = <[u8; 16]>::default();
-            a.copy_from_slice(v);
-            Ok(AssetRef::Uuid(AssetUuid(a)))
-        }
+        Uuid::from_slice(v)
+            .map(AssetUuid)
+            .map(AssetRef::Uuid)
+            .map_err(|_| E::invalid_length(v.len(), &"16"))
     }
 }
 

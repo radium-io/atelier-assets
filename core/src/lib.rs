@@ -1,16 +1,23 @@
+//! The core features such as Asset typing, identification and referencing.
+//! Also maintaining context for imports and miscellaneous utils.
+
+#![warn(clippy::all, rust_2018_idioms, rust_2018_compatibility)]
+// #![warn(missing_docs)]
+
 #[cfg(feature = "serde-1")]
 use serde::{
     de::{self, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
 };
-#[cfg(feature = "serde-1")]
-use std::str::FromStr;
 pub use uuid;
 use uuid::Uuid;
 
 use std::fmt;
 
+/// exports traits for maintaining context of importers
 pub mod importer_context;
+
+/// exports misc. not specific to atelier utils for use around codebase
 pub mod utils;
 
 /// A universally unique identifier for an asset.
@@ -19,42 +26,24 @@ pub mod utils;
 ///
 /// If using a human-readable format, serializes to a hyphenated UUID format and deserializes from
 /// any format supported by the `uuid` crate. Otherwise, serializes to and from a `[u8; 16]`.
-#[derive(PartialEq, Eq, Clone, Copy, Default, Hash, Ord, PartialOrd)]
-pub struct AssetUuid(pub [u8; 16]);
+#[derive(PartialEq, Eq, Clone, Copy, Default, Debug, Hash, Ord, PartialOrd)]
+pub struct AssetUuid(pub Uuid);
 
 impl<S: AsRef<str>> From<S> for AssetUuid {
     fn from(s: S) -> Self {
-        AssetUuid(
-            *Uuid::parse_str(s.as_ref())
-                .expect("Macro input is not a UUID string")
-                .as_bytes(),
-        )
-    }
-}
-
-impl AsMut<[u8]> for AssetUuid {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0
+        AssetUuid(Uuid::parse_str(s.as_ref()).expect("Macro input is not a UUID string"))
     }
 }
 
 impl AsRef<[u8]> for AssetUuid {
     fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl fmt::Debug for AssetUuid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("AssetUuid")
-            .field(&uuid::Uuid::from_bytes(self.0))
-            .finish()
+        self.0.as_bytes()
     }
 }
 
 impl fmt::Display for AssetUuid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        uuid::Uuid::from_bytes(self.0).fmt(f)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -64,26 +53,8 @@ impl Serialize for AssetUuid {
         if serializer.is_human_readable() {
             serializer.serialize_str(&self.to_string())
         } else {
-            self.0.serialize(serializer)
+            self.0.as_bytes().serialize(serializer)
         }
-    }
-}
-
-#[cfg(feature = "serde-1")]
-struct AssetUuidVisitor;
-
-#[cfg(feature = "serde-1")]
-impl<'a> Visitor<'a> for AssetUuidVisitor {
-    type Value = AssetUuid;
-
-    fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "a UUID-formatted string")
-    }
-
-    fn visit_str<E: de::Error>(self, s: &str) -> Result<Self::Value, E> {
-        uuid::Uuid::from_str(s)
-            .map(|id| AssetUuid(*id.as_bytes()))
-            .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(s), &self))
     }
 }
 
@@ -91,10 +62,11 @@ impl<'a> Visitor<'a> for AssetUuidVisitor {
 impl<'de> Deserialize<'de> for AssetUuid {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         if deserializer.is_human_readable() {
-            deserializer.deserialize_string(AssetUuidVisitor)
+            Deserialize::deserialize(deserializer).map(AssetUuid)
         } else {
-            Ok(AssetUuid(<[u8; 16]>::deserialize(deserializer)?))
+            Ok(AssetUuid(Uuid::from_bytes(<[u8; 16]>::deserialize(deserializer)?)))
         }
+
     }
 }
 
@@ -105,20 +77,18 @@ impl<'de> Deserialize<'de> for AssetUuid {
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Default, Hash)]
 pub struct AssetTypeId(pub [u8; 16]);
 
-impl AsMut<[u8]> for AssetTypeId {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0
-    }
-}
-
-impl AsRef<[u8]> for AssetTypeId {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
+impl From<&[u8]> for AssetTypeId {
+    fn from(bytes: &[u8]) -> Self {
+        AssetTypeId(
+            *Uuid::from_slice(bytes)
+                .expect("16 bytes for UUID")
+                .as_bytes(),
+        )
     }
 }
 
 impl fmt::Display for AssetTypeId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         uuid::Uuid::from_bytes(self.0).fmt(f)
     }
 }
@@ -141,7 +111,7 @@ struct AssetTypeIdVisitor;
 impl<'a> Visitor<'a> for AssetTypeIdVisitor {
     type Value = AssetTypeId;
 
-    fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "a UUID-formatted string")
     }
 

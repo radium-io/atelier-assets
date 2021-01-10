@@ -32,6 +32,7 @@ use std::{
 };
 use std::{path::PathBuf, str, sync::Arc, time::Instant};
 use tokio::runtime::Runtime;
+use uuid::Uuid;
 
 pub(crate) struct FileAssetSource {
     hub: Arc<AssetHub>,
@@ -211,9 +212,7 @@ impl FileAssetSource {
                             .get_id()
                             .and_then(|id| id.get_id())
                             .map_err(Error::Capnp)
-                            .and_then(|slice| {
-                                Ok(utils::uuid_from_slice(slice).ok_or(Error::UuidLength)?)
-                            })
+                            .and_then(|slice| Ok(Uuid::from_slice(slice).map(AssetUuid)?))
                             .expect("capnp: Failed to read uuid")
                     })
                     .filter(|id| metadata_assets.iter().all(|a| a.id != *id))
@@ -324,12 +323,12 @@ impl FileAssetSource {
                     .reborrow()
                     .get(idx as u32)
                     .init_key()
-                    .set_id(&asset.id.0);
+                    .set_id(asset.id.0.as_bytes());
                 build_pipelines
                     .reborrow()
                     .get(idx as u32)
                     .init_value()
-                    .set_id(&asset.build_pipeline.unwrap().0);
+                    .set_id(asset.build_pipeline.unwrap().0.as_bytes());
             }
         }
 
@@ -384,9 +383,7 @@ impl FileAssetSource {
                             .get_id()
                             .and_then(|id| id.get_id())
                             .map_err(Error::Capnp)
-                            .and_then(|slice| {
-                                Ok(utils::uuid_from_slice(slice).ok_or(Error::UuidLength)?)
-                            })
+                            .and_then(|slice| Ok(Uuid::from_slice(slice).map(AssetUuid)?))
                             .expect("capnp: Failed to read uuid")
                     })
                     .collect()
@@ -423,8 +420,7 @@ impl FileAssetSource {
                             let mut assets = Vec::new();
                             for asset in metadata.get_assets()? {
                                 assets.push(
-                                    utils::uuid_from_slice(asset.get_id()?.get_id()?)
-                                        .ok_or(Error::UuidLength)?,
+                                    Uuid::from_slice(asset.get_id()?.get_id()?).map(AssetUuid)?,
                                 );
                             }
                             Ok(assets)
@@ -1501,9 +1497,8 @@ where
             let mut build_pipelines = HashMap::new();
             for pair in saved_metadata.get_build_pipelines()?.iter() {
                 build_pipelines.insert(
-                    utils::uuid_from_slice(&pair.get_key()?.get_id()?).ok_or(Error::UuidLength)?,
-                    utils::uuid_from_slice(&pair.get_value()?.get_id()?)
-                        .ok_or(Error::UuidLength)?,
+                    Uuid::from_slice(&pair.get_key()?.get_id()?).map(AssetUuid)?,
+                    Uuid::from_slice(&pair.get_value()?.get_id()?).map(AssetUuid)?,
                 );
             }
             if saved_metadata.get_importer_options_type()? == metadata.importer_options.uuid() {
@@ -1542,7 +1537,7 @@ where
                 saved_metadata.get_import_hash()?,
             )));
             let importer_version = saved_metadata.get_importer_version();
-            let importer_type = AssetTypeId(utils::make_array(saved_metadata.get_importer_type()?));
+            let importer_type = AssetTypeId::from(saved_metadata.get_importer_type()?);
             let assets = saved_metadata
                 .get_assets()?
                 .iter()

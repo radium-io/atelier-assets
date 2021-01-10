@@ -179,7 +179,7 @@ impl Command<Context> for CmdShowAll {
         let assets = response.get_assets()?;
         for asset in assets {
             let id = asset.get_id().unwrap().get_id().unwrap();
-            println!("{:?}\r", uuid::Uuid::from_bytes(make_array(id)));
+            println!("{:?}\r", uuid::Uuid::from_slice(id));
         }
         println!(
             "got {} assets in {}\r",
@@ -237,7 +237,7 @@ impl Command<Context> for CmdGet {
 async fn print_asset_metadata(asset: &data::asset_metadata::Reader<'_>) -> DynResult {
     print!(
         "{{ id: {:?}",
-        uuid::Uuid::from_bytes(make_array(asset.get_id().unwrap().get_id().unwrap())),
+        uuid::Uuid::from_slice(asset.get_id().unwrap().get_id().unwrap()),
     );
 
     if let Ok(tags) = asset.get_search_tags() {

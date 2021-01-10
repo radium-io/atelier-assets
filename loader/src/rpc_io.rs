@@ -1,4 +1,4 @@
-use atelier_core::{utils, ArtifactMetadata, AssetMetadata, AssetUuid};
+use atelier_core::{ArtifactMetadata, AssetMetadata, AssetUuid};
 use atelier_schema::{data::asset_change_event, parse_db_metadata, service::asset_hub};
 use capnp::message::ReaderOptions;
 use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
@@ -8,6 +8,7 @@ use futures_util::AsyncReadExt;
 use std::sync::Mutex;
 use std::{error::Error, path::PathBuf};
 use tokio::runtime::{Builder, Runtime};
+use uuid::Uuid;
 
 use crate::io::{DataRequest, LoaderIO, MetadataRequest, ResolveRequest};
 use crate::loader::LoaderState;
@@ -193,7 +194,7 @@ async fn do_metadata_request(
         .get()
         .init_assets(asset.requested_assets().count() as u32);
     for (idx, asset) in asset.requested_assets().enumerate() {
-        assets.reborrow().get(idx as u32).set_id(&asset.0);
+        assets.reborrow().get(idx as u32).set_id(asset.0.as_bytes());
     }
     let response = request.send().promise.await?;
     let reader = response.get()?;
@@ -212,7 +213,10 @@ async fn do_import_artifact_request(
 ) -> Result<Vec<u8>, capnp::Error> {
     let mut request = snapshot.get_import_artifacts_request();
     let mut assets = request.get().init_assets(1);
-    assets.reborrow().get(0).set_id(&asset.asset_id().0);
+    assets
+        .reborrow()
+        .get(0)
+        .set_id(asset.asset_id().0.as_bytes());
     let response = request.send().promise.await?;
     let reader = response.get()?;
     let artifact = reader.get_artifacts()?.get(0);
@@ -406,13 +410,18 @@ impl asset_hub::listener::Server for ListenerImpl {
                 for change in response.get_changes()? {
                     match change.get_event()?.which()? {
                         asset_change_event::ContentUpdateEvent(evt) => {
-                            let evt = evt?;
-                            let id = utils::make_array(evt.get_id()?.get_id()?);
+                            let id = Uuid::from_slice(evt?.get_id()?.get_id()?)
+                                .map(AssetUuid)
+                                .expect("valid asset id");
+
                             log::trace!("ListenerImpl::update asset_change_event::ContentUpdateEvent(evt) id: {:?}", id);
                             changed_assets.push(id);
                         }
                         asset_change_event::RemoveEvent(evt) => {
-                            let id = utils::make_array(evt?.get_id()?.get_id()?);
+                            let id = Uuid::from_slice(evt?.get_id()?.get_id()?)
+                                .map(AssetUuid)
+                                .expect("valid asset id");
+
                             log::trace!(
                                 "ListenerImpl::update asset_change_event::RemoveEvent(evt) id: {:?}",
                                 id

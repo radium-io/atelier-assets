@@ -45,9 +45,7 @@ impl AsyncImporter for ImageImporter {
         state: &'a mut Self::State,
     ) -> BoxFuture<'a, Result<ImporterValue>> {
         Box::pin(async move {
-            let id = state
-                .0
-                .unwrap_or_else(|| AssetUuid(*uuid::Uuid::new_v4().as_bytes()));
+            let id = state.0.unwrap_or_else(|| AssetUuid(uuid::Uuid::new_v4()));
             *state = SimpleState(Some(id));
             let mut bytes = Vec::new();
             source.read_to_end(&mut bytes).await?;

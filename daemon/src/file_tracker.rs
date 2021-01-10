@@ -36,11 +36,13 @@ struct FileTrackerTables {
     /// Contains SequenceNum -> DirtyFileInfo
     rename_file_events: lmdb::Database,
 }
+
 #[derive(Copy, Clone, Debug)]
 pub enum FileTrackerEvent {
     Start,
     Update,
 }
+
 pub struct FileTracker {
     db: Arc<Environment>,
     tables: FileTrackerTables,
@@ -50,6 +52,7 @@ pub struct FileTracker {
     stopping_event: event_listener::Event,
     watch_dirs: Vec<PathBuf>,
 }
+
 #[derive(Clone, Debug)]
 pub struct FileState {
     pub path: PathBuf,

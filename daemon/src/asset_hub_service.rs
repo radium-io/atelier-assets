@@ -6,7 +6,10 @@ use crate::{
     file_asset_source::FileAssetSource,
     file_tracker::FileTracker,
 };
-use atelier_core::utils::{self, canonicalize_path};
+use atelier_core::{
+    utils::{self, canonicalize_path},
+    AssetUuid,
+};
 use atelier_importer::SerializedAsset;
 use atelier_schema::{
     build_artifact_metadata,
@@ -28,6 +31,7 @@ use std::{
     rc::Rc,
     sync::Arc,
 };
+use uuid::Uuid;
 
 // crate::Error has `impl From<crate::Error> for capnp::Error`
 type Promise<T> = capnp::capability::Promise<T, capnp::Error>;
@@ -120,7 +124,7 @@ impl AssetHubSnapshotImpl {
         let txn = self.txn.txn();
         let mut metadatas = Vec::new();
         for id in params.get_assets()? {
-            let id = utils::uuid_from_slice(id.get_id()?).ok_or(Error::UuidLength)?;
+            let id = Uuid::from_slice(id.get_id()?).map(AssetUuid)?;
             let value = ctx.hub.get_metadata(txn, &id);
             if let Some(metadata) = value {
                 metadatas.push(metadata);
@@ -146,7 +150,7 @@ impl AssetHubSnapshotImpl {
         let txn = self.txn.txn();
         let mut metadatas = HashMap::new();
         for id in params.get_assets()? {
-            let id = utils::uuid_from_slice(id.get_id()?).ok_or(Error::UuidLength)?;
+            let id = Uuid::from_slice(id.get_id()?).map(AssetUuid)?;
             let value = ctx.hub.get_metadata(txn, &id);
             if let Some(metadata) = value {
                 metadatas.insert(id, metadata);
@@ -224,7 +228,7 @@ impl AssetHubSnapshotImpl {
         );
 
         for id in params.get_assets()? {
-            let id = utils::uuid_from_slice(id.get_id()?).ok_or(Error::UuidLength)?;
+            let id = Uuid::from_slice(id.get_id()?).map(AssetUuid)?;
             log::trace!("{:?} get_import_artifacts for id {:?}", request_uuid, id);
             let value = ctx.hub.get_metadata(txn, &id);
             if let Some(metadata) = value {
@@ -336,7 +340,7 @@ impl AssetHubSnapshotImpl {
         let txn = self.txn.txn();
         let mut asset_paths = Vec::new();
         for id in params.get_assets()? {
-            let asset_uuid = utils::uuid_from_slice(id.get_id()?).ok_or(Error::UuidLength)?;
+            let asset_uuid = Uuid::from_slice(id.get_id()?).map(AssetUuid)?;
             let path = ctx.file_source.get_asset_path(txn, &asset_uuid);
             if let Some(path) = path {
                 for dir in ctx.file_tracker.get_watch_dirs() {
@@ -442,8 +446,9 @@ impl AssetHubSnapshotImpl {
                         let source_metadata = source_metadata.get()?;
                         let mut assets = vec![new_artifact];
                         for asset in source_metadata.get_assets()? {
-                            let source_asset_id = utils::uuid_from_slice(asset.get_id()?.get_id()?)
-                                .ok_or(Error::UuidLength)?;
+                            let source_asset_id =
+                                Uuid::from_slice(asset.get_id()?.get_id()?).map(AssetUuid)?;
+
                             if source_asset_id != asset_uuid {
                                 // TODO maybe extract into a function, and use the cache in the future
                                 let (_, artifact) = ctx
