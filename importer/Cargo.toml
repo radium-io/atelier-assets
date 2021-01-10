@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 atelier-core = { path = "../core", version = "0.1.0", features = ["serde-1"] }
+
 uuid = { version = "0.8.1", features = ["v4"] }
 serde = "1.0.118"
 erased-serde = "0.3"
@@ -19,7 +20,7 @@ futures-core = { version = "0.3.9", default-features = false, features = ["alloc
 log = { version = "0.4.11", features = ["serde"] }
 
 [dev-dependencies]
-futures-executor = { version = "0.3" }
+futures-executor = "0.3.9"
 
 [features]
 serde_importers = [
